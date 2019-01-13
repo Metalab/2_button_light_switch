@@ -172,10 +172,10 @@ void changeLight(int amount)
   currentLight += amount;
   
 
-  if(currentLight >  150)
-    currentLight = 150;
-  if(currentLight < 5)
-    currentLight = 5;
+  if(currentLight >  250)
+    currentLight = 250;
+  if(currentLight < 0)
+    currentLight = 0;
 
   sendOut();
 }
@@ -186,10 +186,10 @@ void changeSpeed(int amount)
   currentSpeed += amount;
   
 
-  if(currentSpeed >  250)
-    currentSpeed = 250;
-  if(currentSpeed < 0)
-    currentSpeed = 0;
+  if(currentSpeed >  150)
+    currentSpeed = 150;
+  if(currentSpeed < 5)
+    currentSpeed = 5;
 }
 
 void changeMode(){
