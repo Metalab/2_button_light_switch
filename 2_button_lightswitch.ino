@@ -9,11 +9,16 @@ bool isButton2Down = false;
 int currentLight = 0;
 int currentMode = 9;
 
-int lookupR[] = {1,0,0,1,1,0,1,0,0,0};
-int lookupG[] = {0,1,0,1,0,1,1,0,0,0};
-int lookupB[] = {0,0,1,0,1,1,1,0,0,0};
-int lookupA[] = {0,0,0,0,0,0,0,1,0,1};
-int lookupW[] = {0,0,0,0,0,0,0,0,1,1};
+int currentSpeed = 75;
+int discoCounter = 0;
+
+byte colors[] = {0,0,0};
+
+int lookupR[] = {1,0,0,1,1,0,1,0,0,0,1};
+int lookupG[] = {0,1,0,1,0,1,1,0,0,0,1};
+int lookupB[] = {0,0,1,0,1,1,1,0,0,0,1};
+int lookupA[] = {0,0,0,0,0,0,0,1,0,1,0};
+int lookupW[] = {0,0,0,0,0,0,0,0,1,1,0};
 
 #define BUTTON0 4
 //D2 on the ESP8266 D1 mini
@@ -104,7 +109,7 @@ void setup()
   pinMode(BUTTON1, INPUT_PULLUP);
   pinMode(BUTTON2, INPUT_PULLUP);
 }
-
+  randomSeed(analogRead(0));
 }
 
 void loop()
@@ -120,7 +125,8 @@ void loop()
   else if(isButton0Down == true)
   {
     isButton0Down = false;
-    changeLight(25);
+    if (currentMode == 10) changeSpeed(10);
+    else changeLight(25);
   }
 
   if(digitalRead(BUTTON1) == 0)
@@ -131,7 +137,8 @@ void loop()
   else if(isButton1Down == true)
   {
     isButton1Down = false;
-    changeLight(-25);
+    if (currentMode == 10) changeSpeed(-10);
+    else changeLight(-25);
   }
 
   if(digitalRead(BUTTON2) == 0)
@@ -144,7 +151,16 @@ void loop()
     isButton2Down = false;
     changeMode();
   }
-  
+
+  if (currentMode == 10)
+  {
+    discoCounter++;
+    if (discoCounter > currentSpeed)
+    {
+      discoCounter = 0;
+      sendOut();
+    }
+  }
   delay(20);
   
   
@@ -156,18 +172,30 @@ void changeLight(int amount)
   currentLight += amount;
   
 
-  if(currentLight >  250)
-    currentLight = 250;
-  if(currentLight < 0)
-    currentLight = 0;
+  if(currentLight >  150)
+    currentLight = 150;
+  if(currentLight < 5)
+    currentLight = 5;
 
   sendOut();
+}
+
+void changeSpeed(int amount)
+{
+  Serial.println("changeLight");
+  currentSpeed += amount;
+  
+
+  if(currentSpeed >  250)
+    currentSpeed = 250;
+  if(currentSpeed < 0)
+    currentSpeed = 0;
 }
 
 void changeMode(){
   
   Serial.println("changeMode");
-  currentMode = (currentMode + 1) % 10;
+  currentMode = (currentMode + 1) % 11;
   sendOut();
   
 }
@@ -188,8 +216,26 @@ void sendOut(){
     }*/
 
     
-    for(j = 0; j < 6; j++)
+    if (currentMode == 10)
     {
+      for (i = 0; i < 12; i++)
+      {
+        Wheel((byte)random(255));
+        for (j = 0; j < 6; j++)
+        {
+          artnet.setByte(0 + (i*5), (byte)(colors[0]));
+          artnet.setByte(1 + (i*5), (byte)(colors[1]));
+          artnet.setByte(2 + (i*5), (byte)(colors[2]));
+          artnet.setByte(3 + (i*5), (byte)(0));
+          artnet.setByte(4 + (i*5), (byte)(0));
+          artnet.write(); 
+        }
+      }
+    }
+    else
+    {
+      for(j = 0; j < 6; j++)
+      {
          for (i = 0; i < 60; i++)
          {
            artnet.setByte(0 + (i*5), (byte)(currentLight * lookupR[currentMode]));
@@ -204,6 +250,34 @@ void sendOut(){
            
          }
          delay(20);
+      }
     }
   
+}
+
+// Input a value 0 to 255 to get a color value.
+// The colours are a transition r - g - b - back to r.
+void Wheel(byte colIndex)
+{
+  //int colIndex = WheelPos[0];
+  if(colIndex < 85)
+  {
+    colors[0] = colIndex * 3;
+    colors[1] = 255 - colIndex * 3;
+    colors[2] = 0;
+  }
+  else if(colIndex < 170)
+  {
+    colIndex -= 85;
+    colors[0] = 255 - colIndex * 3;
+    colors[1] = 0;
+    colors[2] = colIndex * 3;
+  }
+  else
+  {
+    colIndex -= 170;
+    colors[0] = 0;
+    colors[1] = colIndex * 3;
+    colors[2] = 255 - colIndex * 3;
+  }
 }
